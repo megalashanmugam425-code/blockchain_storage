@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Environment / Secrets
+.env
+.env.*
+!.env.example
+
+# Runtime files
+uploads/
+encrypted/
+
+# Hardhat generated files
+artifacts/
+cache/
+
+# Kubo / IPFS local installation
+kubo/
+kubo_v*.tar.gz
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE
+.vscode/
+.idea/

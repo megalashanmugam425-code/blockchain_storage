@@ -1,0 +1,49 @@
+body {
+    background: #f4f6f9;
+    min-height: 100vh;
+}
+
+.card {
+    border-radius: 15px;
+}
+
+.navbar-brand {
+    letter-spacing: 0.5px;
+}
+
+.process-box {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px 10px;
+    margin-bottom: 15px;
+    border: 1px solid #dee2e6;
+}
+
+.process-box h5 {
+    font-weight: 600;
+}
+
+.process-box p {
+    margin: 0;
+    color: #6c757d;
+}
+
+#statusMessage {
+    margin-bottom: 20px;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.cid-text {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.dashboard-title {
+    font-weight: 700;
+}
