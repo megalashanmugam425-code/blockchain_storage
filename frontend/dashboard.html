@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Secure Storage Dashboard</title>
+
+<link
+    rel="stylesheet"
+    href="./css/style.css"
+>
+
+<style>
+
+/* =========================================================
+   FEATURE 2
+   SEARCH & FILTER
+   ========================================================= */
+
+.file-tools {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin-top: 16px;
+
+    margin-bottom: 16px;
+
+    width: 100%;
+}
+
+
+.file-search {
+
+    flex: 1;
+
+    min-width: 180px;
+
+    background: var(--surface-2);
+
+    border: 1px solid var(--border);
+
+    color: var(--text);
+
+    border-radius: 8px;
+
+    padding: 10px 12px;
+
+    font-family:
+        "IBM Plex Sans",
+        sans-serif;
+
+    font-size: 14px;
+
+    outline: none;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.file-search::placeholder {
+
+    color: var(--muted);
+}
+
+
+.file-search:focus {
+
+    border-color: var(--teal);
+
+    box-shadow:
+        0 0 0 2px
+        rgba(73, 211, 195, 0.10);
+}
+
+
+.file-filter {
+
+    background: var(--surface-2);
+
+    border: 1px solid var(--border);
+
+    color: var(--text);
+
+    border-radius: 8px;
+
+    padding: 10px 12px;
+
+    font-family:
+        "IBM Plex Sans",
+        sans-serif;
+
+    font-size: 14px;
+
+    outline: none;
+
+    cursor: pointer;
+}
+
+
+.file-filter:focus {
+
+    border-color: var(--teal);
+}
+
+
+.file-clear {
+
+    background: transparent;
+
+    border: 1px solid var(--border);
+
+    color: var(--muted);
+
+    border-radius: 8px;
+
+    padding: 10px 13px;
+
+    font-family:
+        "IBM Plex Sans",
+        sans-serif;
+
+    font-size: 13px;
+
+    cursor: pointer;
+
+    transition:
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+
+.file-clear:hover {
+
+    color: var(--text);
+
+    border-color: var(--teal);
+}
+
+
+/* =========================================================
+   THREE DOT MENU
+   ========================================================= */
+
+.header-menu {
+
+    position: relative;
+
+    display: inline-flex;
+
+    align-items: center;
+}
+
+
+.menu-button {
+
+    width: 38px;
+
+    height: 38px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: transparent;
+
+    border: 1px solid var(--border);
+
+    color: var(--text);
+
+    border-radius: 8px;
+
+    font-size: 22px;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+
+.menu-button:hover {
+
+    border-color: var(--teal);
+
+    background: var(--surface-2);
+}
+
+
+.header-dropdown {
+
+    position: absolute;
+
+    top: calc(100% + 8px);
+
+    right: 0;
+
+    width: 190px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: 10px;
+
+    padding: 6px;
+
+    box-shadow:
+        0 14px 35px
+        rgba(0, 0, 0, 0.35);
+
+    z-index: 1000;
+
+    display: none;
+}
+
+
+.header-dropdown.show {
+
+    display: block;
+}
+
+
+.header-dropdown button {
+
+    width: 100%;
+
+    border: 0;
+
+    background: transparent;
+
+    color: var(--text);
+
+    text-align: left;
+
+    padding: 10px 11px;
+
+    border-radius: 7px;
+
+    font-family:
+        "IBM Plex Sans",
+        sans-serif;
+
+    font-size: 13px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+
+.header-dropdown button:hover {
+
+    background: var(--surface-2);
+
+    color: var(--teal);
+}
+
+
+/* =========================================================
+   AUDIT LOG MODAL
+   ========================================================= */
+
+.audit-modal {
+
+    position: fixed;
+
+    inset: 0;
+
+    display: none;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+        rgba(0, 0, 0, 0.65);
+
+    z-index: 2000;
+
+    padding: 20px;
+}
+
+
+.audit-modal.show {
+
+    display: flex;
+}
+
+
+.audit-box {
+
+    width: min(760px, 100%);
+
+    max-height: 80vh;
+
+    overflow: hidden;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 20px 60px
+        rgba(0, 0, 0, 0.45);
+}
+
+
+.audit-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 18px 20px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+
+.audit-header h2 {
+
+    margin: 0;
+
+    font-size: 18px;
+
+    color: var(--text);
+}
+
+
+.audit-close {
+
+    border: 0;
+
+    background: transparent;
+
+    color: var(--muted);
+
+    font-size: 25px;
+
+    cursor: pointer;
+}
+
+
+.audit-close:hover {
+
+    color: var(--text);
+}
+
+
+.audit-body {
+
+    padding: 18px 20px;
+
+    overflow-y: auto;
+
+    max-height: 60vh;
+}
+
+
+.audit-item {
+
+    display: grid;
+
+    grid-template-columns:
+        145px
+        1fr;
+
+    gap: 14px;
+
+    padding: 13px 0;
+
+    border-bottom: 1px solid var(--border);
+}
+
+
+.audit-item:last-child {
+
+    border-bottom: 0;
+}
+
+
+.audit-type {
+
+    font-family:
+        "IBM Plex Mono",
+        monospace;
+
+    font-size: 11px;
+
+    color: var(--teal);
+
+    font-weight: 600;
+}
+
+
+.audit-description {
+
+    color: var(--text);
+
+    font-size: 13px;
+}
+
+
+.audit-meta {
+
+    margin-top: 5px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+.audit-empty {
+
+    text-align: center;
+
+    color: var(--muted);
+
+    padding: 30px 10px;
+}
+
+
+/* =========================================================
+   BACKUP STATUS
+   ========================================================= */
+
+.backup-status {
+
+    display: grid;
+
+    gap: 10px;
+}
+
+
+.backup-row {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 13px;
+
+    background: var(--surface-2);
+
+    border: 1px solid var(--border);
+
+    border-radius: 8px;
+}
+
+
+.backup-name {
+
+    color: var(--text);
+
+    font-size: 13px;
+}
+
+
+.backup-ok {
+
+    color: var(--teal);
+
+    font-family:
+        "IBM Plex Mono",
+        monospace;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .file-tools {
+
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .file-search,
+    .file-filter,
+    .file-clear {
+
+        width: 100%;
+    }
+
+
+    .header-actions {
+
+        gap: 6px;
+    }
+
+
+    .env-pill {
+
+        display: none;
+    }
+
+
+    .audit-item {
+
+        grid-template-columns: 1fr;
+
+        gap: 5px;
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+     DASHBOARD
+     ========================================================= -->
+
+<section
+    id="dashboardSection"
+    class="dashboard-screen show"
+>
+
+
+    <header>
+
+
+        <div class="brand">
+
+
+            <div class="brand-mark">
+                🔐
+            </div>
+
+
+            <div>
+
+                <h1>
+                    Secure Storage
+                </h1>
+
+
+                <p>
+
+                    ChaCha20-Poly1305 encryption &middot;
+                    IPFS &middot;
+                    on-chain CID verification
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="header-actions">
+
+
+            <div class="env-pill mono">
+
+                testnet: sepolia &middot;
+                node: connected
+
+            </div>
+
+
+            <!-- =================================================
+                 THREE DOT MENU
+                 ================================================= -->
+
+            <div class="header-menu">
+
+                <button
+                    type="button"
+                    class="menu-button"
+                    id="dashboardMenuButton"
+                    aria-label="Dashboard menu"
+                    aria-expanded="false"
+                >
+                    ⋮
+                </button>
+
+
+                <div
+                    class="header-dropdown"
+                    id="dashboardMenu"
+                >
+
+                    <button
+                        type="button"
+                        id="activityMenuButton"
+                    >
+                        File Activity
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="backupMenuButton"
+                    >
+                        Backup Status
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="verifyMenuButton"
+                    >
+                        Verify Files
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="logoutMenuButton"
+                    >
+                        Logout
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Existing Logout button remains -->
+
+            <button
+                type="button"
+                class="logout-btn"
+                id="logoutButton"
+            >
+                Logout
+            </button>
+
+
+        </div>
+
+
+    </header>
+
+
+    <!-- =====================================================
+         STATUS
+         ===================================================== -->
+
+    <div
+        id="statusMessage"
+        class="status-message"
+    ></div>
+
+
+    <!-- =====================================================
+         STATS
+         ===================================================== -->
+
+    <div class="stats">
+
+
+        <div class="stat">
+
+            <div class="label">
+                Files stored
+            </div>
+
+            <div
+                class="value"
+                id="statFiles"
+            >
+                0
+            </div>
+
+            <div
+                class="sub up"
+                id="statToday"
+            >
+                +0 today
+            </div>
+
+        </div>
+
+
+        <div class="stat">
+
+            <div class="label">
+                Storage used
+            </div>
+
+            <div
+                class="value"
+                id="statStorage"
+            >
+                0 B
+            </div>
+
+            <div
+                class="sub"
+                id="statCompressed"
+            >
+                0 B after compression
+            </div>
+
+        </div>
+
+
+        <div class="stat">
+
+            <div class="label">
+                Verified on-chain
+            </div>
+
+            <div
+                class="value"
+                id="statVerified"
+            >
+                0 / 0
+            </div>
+
+            <div
+                class="sub"
+                id="statPending"
+            >
+                0 pending confirmation
+            </div>
+
+        </div>
+
+
+        <div class="stat">
+
+            <div class="label">
+                Avg. compression
+            </div>
+
+            <div
+                class="value"
+                id="statCompression"
+            >
+                0%
+            </div>
+
+            <div class="sub">
+                skipped on files &lt; 200B
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- =====================================================
+         UPLOAD AREA
+         ===================================================== -->
+
+    <div class="upload-area">
+
+
+        <input
+            type="file"
+            id="file"
+            hidden
+        >
+
+
+        <button
+            type="button"
+            class="upload-btn"
+            id="chooseFileButton"
+        >
+            + Upload file
+        </button>
+
+
+    </div>
+
+
+    <!-- =====================================================
+         PIPELINE
+         ===================================================== -->
+
+    <div class="pipeline-card">
+
+
+        <div class="pipeline-head">
+
+
+            <h2>
+                Upload pipeline
+            </h2>
+
+
+            <span
+                class="file-tag mono"
+                id="pipelineFile"
+            >
+                No file selected
+            </span>
+
+
+        </div>
+
+
+        <div
+            class="pipeline"
+            id="pipeline"
+        >
+
+
+            <div
+                class="p-step active"
+                data-step="0"
+            >
+
+                <div class="p-line"></div>
+
+                <div class="dot">
+                    1
+                </div>
+
+                <div class="lbl">
+                    Upload
+                </div>
+
+                <div class="sub-lbl">
+                    original file
+                </div>
+
+            </div>
+
+
+            <div
+                class="p-step"
+                data-step="1"
+            >
+
+                <div class="p-line"></div>
+
+                <div class="dot">
+                    2
+                </div>
+
+                <div class="lbl">
+                    Compress
+                </div>
+
+                <div class="sub-lbl">
+                    gzip
+                </div>
+
+            </div>
+
+
+            <div
+                class="p-step"
+                data-step="2"
+            >
+
+                <div class="p-line"></div>
+
+                <div class="dot">
+                    3
+                </div>
+
+                <div class="lbl">
+                    Encrypt
+                </div>
+
+                <div class="sub-lbl">
+                    ChaCha20-Poly1305
+                </div>
+
+            </div>
+
+
+            <div
+                class="p-step"
+                data-step="3"
+            >
+
+                <div class="p-line"></div>
+
+                <div class="dot">
+                    4
+                </div>
+
+                <div class="lbl">
+                    IPFS
+                </div>
+
+                <div class="sub-lbl">
+                    generating CID…
+                </div>
+
+            </div>
+
+
+            <div
+                class="p-step"
+                data-step="4"
+            >
+
+                <div class="dot">
+                    5
+                </div>
+
+                <div class="lbl">
+                    Blockchain
+                </div>
+
+                <div class="sub-lbl">
+                    awaiting CID
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         STORED FILES
+         ===================================================== -->
+
+    <div class="table-card">
+
+
+        <div class="table-head">
+
+
+            <h2>
+                Stored files
+            </h2>
+
+
+            <button
+                type="button"
+                class="upload-btn"
+                id="chooseFileButtonTop"
+            >
+                + Upload file
+            </button>
+
+
+        </div>
+
+
+        <!-- =================================================
+             SEARCH & FILTER
+             ================================================= -->
+
+        <div class="file-tools">
+
+
+            <input
+                type="search"
+                id="fileSearch"
+                class="file-search"
+                placeholder="Search files..."
+                autocomplete="off"
+            >
+
+
+            <select
+                id="fileFilter"
+                class="file-filter"
+            >
+
+                <option value="all">
+                    All files
+                </option>
+
+                <option value="confirmed">
+                    Confirmed
+                </option>
+
+                <option value="pending">
+                    Pending
+                </option>
+
+                <option value="failed">
+                    Failed
+                </option>
+
+                <option value="encrypted">
+                    Encrypted
+                </option>
+
+            </select>
+
+
+            <button
+                type="button"
+                id="clearSearch"
+                class="file-clear"
+            >
+                Clear
+            </button>
+
+
+        </div>
+
+
+        <table>
+
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        File
+                    </th>
+
+                    <th>
+                        Size
+                    </th>
+
+                    <th>
+                        IPFS CID
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Actions
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="rows">
+
+
+                <tr>
+
+                    <td
+                        colspan="5"
+                        class="empty-state"
+                    >
+                        No files stored yet.
+                    </td>
+
+                </tr>
+
+
+            </tbody>
+
+
+        </table>
+
+
+    </div>
+
+
+    <!-- =====================================================
+         CHARTS
+         ===================================================== -->
+
+    <div class="charts">
+
+
+        <div class="chart-card">
+
+
+            <h3>
+                Uploads, last 7 days
+            </h3>
+
+
+            <div
+                class="bar-row"
+                id="bars"
+            ></div>
+
+
+        </div>
+
+
+        <div class="chart-card">
+
+
+            <h3>
+                File types stored
+            </h3>
+
+
+            <div class="donut-wrap">
+
+
+                <div class="donut"></div>
+
+
+                <div class="legend">
+
+
+                    <div>
+
+                        <span
+                            class="sw"
+                            style="background:var(--teal)"
+                        ></span>
+
+                        Text / config — 46%
+
+                    </div>
+
+
+                    <div>
+
+                        <span
+                            class="sw"
+                            style="background:#3F8F84"
+                        ></span>
+
+                        Images — 26%
+
+                    </div>
+
+
+                    <div>
+
+                        <span
+                            class="sw"
+                            style="background:var(--amber)"
+                        ></span>
+
+                        Reports / logs — 18%
+
+                    </div>
+
+
+                    <div>
+
+                        <span
+                            class="sw"
+                            style="background:#3A444A"
+                        ></span>
+
+                        Other — 10%
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+    <!-- =====================================================
+         DETAILS MODAL
+         ===================================================== -->
+
+    <div
+        id="fileDetailsModal"
+        class="file-details-modal"
+        aria-hidden="true"
+    >
+
+
+        <div class="file-details-box">
+
+
+            <div class="file-details-header">
+
+
+                <h2>
+                    File security details
+                </h2>
+
+
+                <button
+                    id="closeDetailsModal"
+                    type="button"
+                >
+                    &times;
+                </button>
+
+
+            </div>
+
+
+            <div class="file-details-body">
+
+
+                <div class="detail-row">
+
+                    <span>
+                        File
+                    </span>
+
+                    <strong
+                        id="detailOriginalName"
+                    >
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span>
+                        Original size
+                    </span>
+
+                    <strong
+                        id="detailOriginalSize"
+                    >
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span>
+                        Compressed size
+                    </span>
+
+                    <strong
+                        id="detailCompressedSize"
+                    >
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span>
+                        Compression
+                    </span>
+
+                    <strong
+                        id="detailCompression"
+                    >
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span>
+                        Encryption
+                    </span>
+
+                    <strong
+                        id="detailEncryption"
+                    >
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span>
+                        IPFS CID
+                    </span>
+
+                    <strong
+                        class="cid-value mono"
+                        id="detailCID"
+                    >
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span>
+                        Status
+                    </span>
+
+                    <strong
+                        id="detailStatus"
+                    >
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="detail-row">
+
+                    <span>
+                        Created
+                    </span>
+
+                    <strong
+                        id="detailCreatedAt"
+                    >
+                        —
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="file-details-footer">
+
+
+                <button
+                    id="closeDetailsButton"
+                    type="button"
+                >
+                    Close
+                </button>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+    <!-- =====================================================
+         AUDIT LOG MODAL
+         ===================================================== -->
+
+    <div
+        id="auditModal"
+        class="audit-modal"
+        aria-hidden="true"
+    >
+
+        <div class="audit-box">
+
+
+            <div class="audit-header">
+
+                <h2>
+                    File Activity
+                </h2>
+
+
+                <button
+                    type="button"
+                    class="audit-close"
+                    id="closeAuditModal"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <div
+                class="audit-body"
+                id="auditBody"
+            >
+
+                <div class="audit-empty">
+                    Loading activity...
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         BACKUP STATUS MODAL
+         ===================================================== -->
+
+    <div
+        id="backupModal"
+        class="audit-modal"
+        aria-hidden="true"
+    >
+
+        <div class="audit-box">
+
+
+            <div class="audit-header">
+
+                <h2>
+                    Backup Status
+                </h2>
+
+
+                <button
+                    type="button"
+                    class="audit-close"
+                    id="closeBackupModal"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <div class="audit-body">
+
+
+                <div class="backup-status">
+
+
+                    <div class="backup-row">
+
+                        <span class="backup-name">
+                            Primary Backup
+                        </span>
+
+                        <span class="backup-ok">
+                            ✓ ACTIVE
+                        </span>
+
+                    </div>
+
+
+                    <div class="backup-row">
+
+                        <span class="backup-name">
+                            Secondary Backup
+                        </span>
+
+                        <span class="backup-ok">
+                            ✓ ACTIVE
+                        </span>
+
+                    </div>
+
+
+                    <div class="backup-row">
+
+                        <span class="backup-name">
+                            Tertiary Backup
+                        </span>
+
+                        <span class="backup-ok">
+                            ✓ ACTIVE
+                        </span>
+
+                    </div>
+
+
+                    <div class="backup-row">
+
+                        <span class="backup-name">
+                            SHA-256 Integrity
+                        </span>
+
+                        <span class="backup-ok">
+                            ✓ VERIFIED
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</section>
+
+
+<script src="./js/app.js"></script>
+
+
+</body>
+</html>
