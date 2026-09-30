@@ -2,6 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
+const fsp = fs.promises;
+
 const BACKUP_ROOT =
     path.join(__dirname, "..", "backups");
 
@@ -21,22 +23,86 @@ const TERTIARY_DIR =
 |--------------------------------------------------------------------------
 */
 
-function ensureBackupDirectories() {
+async function ensureBackupDirectories() {
 
-    [
-        BACKUP_ROOT,
-        PRIMARY_DIR,
-        SECONDARY_DIR,
-        TERTIARY_DIR
-    ].forEach((dir) => {
+    await Promise.all([
 
-        if (!fs.existsSync(dir)) {
-
-            fs.mkdirSync(dir, {
+        fsp.mkdir(
+            PRIMARY_DIR,
+            {
                 recursive: true
-            });
+            }
+        ),
 
-        }
+        fsp.mkdir(
+            SECONDARY_DIR,
+            {
+                recursive: true
+            }
+        ),
+
+        fsp.mkdir(
+            TERTIARY_DIR,
+            {
+                recursive: true
+            }
+        )
+
+    ]);
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Calculate SHA256 asynchronously
+|--------------------------------------------------------------------------
+|
+| Uses streaming instead of readFileSync().
+| This avoids blocking the Node.js event loop.
+|
+|--------------------------------------------------------------------------
+*/
+
+function calculateSHA256(filePath) {
+
+    return new Promise((resolve, reject) => {
+
+        const hash =
+            crypto.createHash("sha256");
+
+        const stream =
+            fs.createReadStream(filePath);
+
+        stream.on(
+            "data",
+            (chunk) => {
+
+                hash.update(chunk);
+
+            }
+        );
+
+        stream.on(
+            "end",
+            () => {
+
+                resolve(
+                    hash.digest("hex")
+                );
+
+            }
+        );
+
+        stream.on(
+            "error",
+            reject
+        );
+
+        hash.on(
+            "error",
+            reject
+        );
 
     });
 
@@ -45,35 +111,25 @@ function ensureBackupDirectories() {
 
 /*
 |--------------------------------------------------------------------------
-| Calculate SHA256
+| Copy encrypted file asynchronously
 |--------------------------------------------------------------------------
 */
 
-function calculateSHA256(filePath) {
-
-    const data =
-        fs.readFileSync(filePath);
-
-    return crypto
-        .createHash("sha256")
-        .update(data)
-        .digest("hex");
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Copy encrypted file
-|--------------------------------------------------------------------------
-*/
-
-function copyBackup(
+async function copyBackup(
     sourcePath,
     destinationPath
 ) {
 
-    if (!fs.existsSync(sourcePath)) {
+    try {
+
+        await fsp.access(
+            sourcePath,
+            fs.constants.F_OK
+        );
+
+    }
+
+    catch (error) {
 
         throw new Error(
             `Encrypted source file not found: ${sourcePath}`
@@ -81,7 +137,8 @@ function copyBackup(
 
     }
 
-    fs.copyFileSync(
+
+    await fsp.copyFile(
         sourcePath,
         destinationPath
     );
@@ -119,7 +176,7 @@ async function createBackups(
     |--------------------------------------------------------------------------
     */
 
-    ensureBackupDirectories();
+    await ensureBackupDirectories();
 
 
     /*
@@ -128,7 +185,16 @@ async function createBackups(
     |--------------------------------------------------------------------------
     */
 
-    if (!fs.existsSync(encryptedFilePath)) {
+    try {
+
+        await fsp.access(
+            encryptedFilePath,
+            fs.constants.F_OK
+        );
+
+    }
+
+    catch (error) {
 
         throw new Error(
             `Encrypted file does not exist: ${encryptedFilePath}`
@@ -144,7 +210,9 @@ async function createBackups(
     */
 
     const fileName =
-        path.basename(encryptedFilePath);
+        path.basename(
+            encryptedFilePath
+        );
 
 
     /*
@@ -174,106 +242,132 @@ async function createBackups(
 
     /*
     |--------------------------------------------------------------------------
-    | BACKUP 1 - PRIMARY
+    | Create all 3 backups in parallel
+    |--------------------------------------------------------------------------
+    |
+    | Previously:
+    |
+    | Primary → Secondary → Tertiary
+    |
+    | Now:
+    |
+    | Primary
+    | Secondary     } All run together
+    | Tertiary
+    |
     |--------------------------------------------------------------------------
     */
 
     console.log(
-        "Creating PRIMARY backup..."
+        "Creating 3 backups in parallel..."
     );
 
-    copyBackup(
-        encryptedFilePath,
-        primaryPath
+
+    await Promise.all([
+
+        copyBackup(
+            encryptedFilePath,
+            primaryPath
+        ),
+
+        copyBackup(
+            encryptedFilePath,
+            secondaryPath
+        ),
+
+        copyBackup(
+            encryptedFilePath,
+            tertiaryPath
+        )
+
+    ]);
+
+
+    console.log(
+        "All 3 backup copies created"
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | BACKUP 2 - SECONDARY
+    | Verify all backups exist
     |--------------------------------------------------------------------------
     */
 
-    console.log(
-        "Creating SECONDARY backup..."
-    );
+    const backupPaths = [
 
-    copyBackup(
-        encryptedFilePath,
-        secondaryPath
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | BACKUP 3 - TERTIARY
-    |--------------------------------------------------------------------------
-    */
-
-    console.log(
-        "Creating TERTIARY backup..."
-    );
-
-    copyBackup(
-        encryptedFilePath,
+        primaryPath,
+        secondaryPath,
         tertiaryPath
+
+    ];
+
+
+    await Promise.all(
+
+        backupPaths.map(
+            async (backupPath) => {
+
+                try {
+
+                    await fsp.access(
+                        backupPath,
+                        fs.constants.F_OK
+                    );
+
+                }
+
+                catch (error) {
+
+                    throw new Error(
+                        `Backup file was not created: ${backupPath}`
+                    );
+
+                }
+
+            }
+        )
+
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | Verify all backups
+    | Calculate SHA256 hashes in parallel
     |--------------------------------------------------------------------------
     */
 
-    const primaryExists =
-        fs.existsSync(primaryPath);
-
-    const secondaryExists =
-        fs.existsSync(secondaryPath);
-
-    const tertiaryExists =
-        fs.existsSync(tertiaryPath);
+    console.log(
+        "Calculating backup SHA256 hashes..."
+    );
 
 
-    if (
-        !primaryExists ||
-        !secondaryExists ||
-        !tertiaryExists
-    ) {
+    const [
 
-        throw new Error(
-            "One or more backup files were not created"
-        );
+        sourceHash,
+        primaryHash,
+        secondaryHash,
+        tertiaryHash
 
-    }
+    ] = await Promise.all([
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Calculate hashes
-    |--------------------------------------------------------------------------
-    */
-
-    const sourceHash =
         calculateSHA256(
             encryptedFilePath
-        );
+        ),
 
-    const primaryHash =
         calculateSHA256(
             primaryPath
-        );
+        ),
 
-    const secondaryHash =
         calculateSHA256(
             secondaryPath
-        );
+        ),
 
-    const tertiaryHash =
         calculateSHA256(
             tertiaryPath
-        );
+        )
+
+    ]);
 
 
     /*
@@ -283,9 +377,13 @@ async function createBackups(
     */
 
     if (
+
         sourceHash !== primaryHash ||
+
         sourceHash !== secondaryHash ||
+
         sourceHash !== tertiaryHash
+
     ) {
 
         throw new Error(
@@ -301,25 +399,45 @@ async function createBackups(
     |--------------------------------------------------------------------------
     */
 
-    const sourceSize =
-        fs.statSync(
+    const [
+
+        sourceStats,
+        primaryStats,
+        secondaryStats,
+        tertiaryStats
+
+    ] = await Promise.all([
+
+        fsp.stat(
             encryptedFilePath
-        ).size;
+        ),
+
+        fsp.stat(
+            primaryPath
+        ),
+
+        fsp.stat(
+            secondaryPath
+        ),
+
+        fsp.stat(
+            tertiaryPath
+        )
+
+    ]);
+
+
+    const sourceSize =
+        sourceStats.size;
 
     const primarySize =
-        fs.statSync(
-            primaryPath
-        ).size;
+        primaryStats.size;
 
     const secondarySize =
-        fs.statSync(
-            secondaryPath
-        ).size;
+        secondaryStats.size;
 
     const tertiarySize =
-        fs.statSync(
-            tertiaryPath
-        ).size;
+        tertiaryStats.size;
 
 
     /*
@@ -387,244 +505,206 @@ async function createBackups(
 
     return {
 
-        primary: primaryPath,
+        primary:
+            primaryPath,
 
-        secondary: secondaryPath,
+        secondary:
+            secondaryPath,
 
-        tertiary: tertiaryPath,
+        tertiary:
+            tertiaryPath,
 
-        sourceSize: sourceSize,
+        sourceSize:
+            sourceSize,
 
-        primarySize: primarySize,
+        primarySize:
+            primarySize,
 
-        secondarySize: secondarySize,
+        secondarySize:
+            secondarySize,
 
-        tertiarySize: tertiarySize,
+        tertiarySize:
+            tertiarySize,
 
-        sourceHash: sourceHash,
+        sourceHash:
+            sourceHash,
 
-        primaryHash: primaryHash,
+        primaryHash:
+            primaryHash,
 
-        secondaryHash: secondaryHash,
+        secondaryHash:
+            secondaryHash,
 
-        tertiaryHash: tertiaryHash,
+        tertiaryHash:
+            tertiaryHash,
 
-        verified: true
-
-    };
-
-} 
-/*
-|--------------------------------------------------------------------------
-| Recover PRIMARY backup
-|--------------------------------------------------------------------------
-*/
-
-async function recoverPrimaryBackup(
-    fileName
-) {
-
-    ensureBackupDirectories();
-
-    const primaryPath =
-        path.join(
-            PRIMARY_DIR,
-            fileName
-        );
-
-    const secondaryPath =
-        path.join(
-            SECONDARY_DIR,
-            fileName
-        );
-
-    const tertiaryPath =
-        path.join(
-            TERTIARY_DIR,
-            fileName
-        );
-
-
-    console.log(
-        "=========================================="
-    );
-
-    console.log(
-        "STARTING PRIMARY BACKUP RECOVERY"
-    );
-
-    console.log(
-        "File:",
-        fileName
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check PRIMARY
-    |--------------------------------------------------------------------------
-    */
-
-    if (fs.existsSync(primaryPath)) {
-
-        try {
-
-            console.log(
-                "Checking PRIMARY integrity..."
-            );
-
-            const primaryHash =
-                calculateSHA256(
-                    primaryPath
-                );
-
-            console.log(
-                "PRIMARY SHA256:",
-                primaryHash
-            );
-
-        } catch (error) {
-
-            console.log(
-                "PRIMARY check failed:",
-                error.message
-            );
-
-        }
-
-    } else {
-
-        console.log(
-            "PRIMARY backup is missing"
-        );
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Find valid recovery source
-    |--------------------------------------------------------------------------
-    */
-
-    let recoverySource = null;
-
-    if (fs.existsSync(secondaryPath)) {
-
-        console.log(
-            "Checking SECONDARY backup..."
-        );
-
-        recoverySource =
-            secondaryPath;
-
-    } else if (fs.existsSync(tertiaryPath)) {
-
-        console.log(
-            "SECONDARY unavailable."
-        );
-
-        console.log(
-            "Using TERTIARY backup..."
-        );
-
-        recoverySource =
-            tertiaryPath;
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | No valid backup
-    |--------------------------------------------------------------------------
-    */
-
-    if (!recoverySource) {
-
-        throw new Error(
-            "No valid backup available for recovery"
-        );
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Recover PRIMARY
-    |--------------------------------------------------------------------------
-    */
-
-    console.log(
-        "Recovery source:",
-        recoverySource
-    );
-
-    fs.copyFileSync(
-        recoverySource,
-        primaryPath
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Verify recovered PRIMARY
-    |--------------------------------------------------------------------------
-    */
-
-    const recoveredHash =
-        calculateSHA256(
-            primaryPath
-        );
-
-    const sourceHash =
-        calculateSHA256(
-            recoverySource
-        );
-
-
-    if (
-        recoveredHash !== sourceHash
-    ) {
-
-        throw new Error(
-            "PRIMARY recovery integrity verification failed"
-        );
-
-    }
-
-
-    console.log(
-        "Recovered PRIMARY SHA256:",
-        recoveredHash
-    );
-
-    console.log(
-        "PRIMARY RECOVERY: SUCCESS"
-    );
-
-    console.log(
-        "=========================================="
-    );
-
-
-    return {
-
-        primary: primaryPath,
-
-        recoverySource: recoverySource,
-
-        hash: recoveredHash,
-
-        verified: true
+        verified:
+            true
 
     };
 
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Recover PRIMARY backup
+|--------------------------------------------------------------------------
+*/
+
+async function recoverPrimaryBackup(fileName) {
+    await ensureBackupDirectories();
+
+    if (
+        typeof fileName !== "string" ||
+        !fileName ||
+        path.basename(fileName) !== fileName
+    ) {
+        throw new Error("Invalid file name");
+    }
+
+    const primaryPath = path.join(PRIMARY_DIR, fileName);
+    const secondaryPath = path.join(SECONDARY_DIR, fileName);
+    const tertiaryPath = path.join(TERTIARY_DIR, fileName);
+
+    console.log("==========================================");
+    console.log("STARTING SECURE PRIMARY RECOVERY");
+    console.log("File:", fileName);
+
+    const candidates = [
+        { name: "PRIMARY", path: primaryPath },
+        { name: "SECONDARY", path: secondaryPath },
+        { name: "TERTIARY", path: tertiaryPath }
+    ];
+
+    const available = [];
+
+    for (const item of candidates) {
+        try {
+            await fsp.access(item.path, fs.constants.F_OK);
+
+            const hash = await calculateSHA256(item.path);
+
+            available.push({
+                ...item,
+                hash
+            });
+
+            console.log(`${item.name} SHA256:`, hash);
+        } catch (error) {
+            console.log(`${item.name} unavailable:`, error.message);
+        }
+    }
+
+    // Need at least two copies to verify a matching majority.
+    if (available.length < 2) {
+        throw new Error(
+            "Recovery stopped: Not enough backup copies to verify integrity"
+        );
+    }
+
+    // Group backups by identical SHA-256 hash.
+    const groups = new Map();
+
+    for (const item of available) {
+        if (!groups.has(item.hash)) {
+            groups.set(item.hash, []);
+        }
+
+        groups.get(item.hash).push(item);
+    }
+
+    const majority = [...groups.values()]
+        .find(group => group.length >= 2);
+
+    if (!majority) {
+        throw new Error(
+            "Recovery stopped: No matching majority. Manual verification required."
+        );
+    }
+
+    const trustedHash = majority[0].hash;
+
+    console.log("Matching backup count:", majority.length);
+    console.log("Verified majority SHA256:", trustedHash);
+
+    const primary = available.find(
+        item => item.name === "PRIMARY"
+    );
+
+    // Primary is already consistent with the matching copies.
+    if (primary && primary.hash === trustedHash) {
+        console.log("PRIMARY is already verified.");
+        console.log("PRIMARY RECOVERY: NOT REQUIRED");
+
+        return {
+            primary: primaryPath,
+            recoverySource: primaryPath,
+            hash: trustedHash,
+            verified: true
+        };
+    }
+
+    // Select a matching secondary or tertiary copy.
+    const source = majority.find(
+        item => item.name !== "PRIMARY"
+    );
+
+    if (!source) {
+        throw new Error("No valid recovery source found");
+    }
+
+    console.log("Recovery source:", source.name);
+
+    // Copy to a temporary file first, preserving the current primary
+    // until the recovered copy passes its hash check.
+    const tempPath = `${primaryPath}.recovery-${process.pid}-${Date.now()}`;
+
+    try {
+        await fsp.copyFile(source.path, tempPath);
+
+        const tempHash = await calculateSHA256(tempPath);
+
+        if (tempHash !== trustedHash) {
+            throw new Error(
+                "Temporary recovery integrity verification failed"
+            );
+        }
+
+        await fsp.rename(tempPath, primaryPath);
+
+        const recoveredHash = await calculateSHA256(primaryPath);
+
+        if (recoveredHash !== trustedHash) {
+            throw new Error(
+                "Recovered PRIMARY integrity verification failed"
+            );
+        }
+
+        console.log("Recovered PRIMARY SHA256:", recoveredHash);
+        console.log("PRIMARY RECOVERY: SUCCESS");
+        console.log("==========================================");
+
+        return {
+            primary: primaryPath,
+            recoverySource: source.path,
+            hash: recoveredHash,
+            verified: true
+        };
+    } finally {
+        try {
+            await fsp.unlink(tempPath);
+        } catch (error) {
+            if (error.code !== "ENOENT") {
+                console.error("Temporary file cleanup warning:", error.message);
+            }
+        }
+    }
+}
+
 
 module.exports = {
     createBackups,
     recoverPrimaryBackup
 };
+

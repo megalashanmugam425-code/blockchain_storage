@@ -1641,6 +1641,13 @@ function renderFiles(files) {
                             >
                                 Details
                             </button>
+                            <button
+    class="act-btn delete"
+    type="button"
+    onclick="deleteFile('${encodeURIComponent(id)}')"
+>
+    Delete
+</button>
 
                         </div>
 
@@ -2150,6 +2157,77 @@ async function downloadFile(
 
         showStatus(
             error.message,
+            "error"
+        );
+    }
+}
+/* DELETE FILE */
+async function deleteFile(encodedId) {
+    const id = decodeURIComponent(encodedId);
+
+    if (!token) {
+        token = localStorage.getItem("token") || "";
+    }
+
+    if (!token) {
+        window.location.href = "./index.html";
+        return;
+    }
+
+    const file = currentFiles.find(
+        item => String(item.id) === String(id)
+    );
+
+    const name =
+        file?.original_name ||
+        file?.originalName ||
+        "this file";
+
+    const confirmed = window.confirm(
+        `Are you sure you want to delete "${name}"?\n\n` +
+        "This file will be hidden from your dashboard.\n" +
+        "Blockchain records and IPFS backups will remain."
+    );
+
+    if (!confirmed) return;
+
+    showStatus("Deleting file...", "info");
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/files/${encodeURIComponent(id)}`,
+            {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await readJson(response);
+
+        if (response.status === 401 || response.status === 403) {
+            token = "";
+            localStorage.removeItem("token");
+            window.location.href = "./index.html";
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || "Failed to delete file"
+            );
+        }
+
+        showStatus("File deleted successfully.", "success");
+
+        await loadDashboard();
+
+    } catch (error) {
+        console.error("DELETE FILE ERROR:", error);
+
+        showStatus(
+            error.message || "Failed to delete file.",
             "error"
         );
     }
@@ -3458,7 +3536,7 @@ window.runVerify =
 
 window.downloadFile =
     downloadFile;
-
+window.deleteFile = deleteFile;
 window.showDetails =
     showDetails;
 

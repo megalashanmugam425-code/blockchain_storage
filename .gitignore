@@ -32,3 +32,17 @@ npm-debug.log*
 # IDE
 .vscode/
 .idea/
+
+# Local test files and backups
+*.backup.*
+*.before-*.js
+*.before-*.html
+*.swp
+backups/
+downloaded_file.txt
+full-upload-test.txt
+api-test.txt
+api-blockchain-test.txt
+blockchain-final-test.txt
+test-backup-recovery.js
+test-recovery-function.js

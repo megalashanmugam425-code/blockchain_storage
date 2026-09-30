@@ -1606,7 +1606,17 @@ tr:last-child td{
 
         min-width:175px;
     }
+.act-btn.delete {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
 
+.act-btn.delete:hover {
+    background: #b91c1c;
+    color: #ffffff;
+    border-color: #b91c1c;
+}
 }
 
 }
